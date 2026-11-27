@@ -201,11 +201,22 @@ const NEWS_FEEDS = [
 ];
 
 async function fetchFeed(feed) {
-  const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(feed.url)}`;
-  const r = await fetch(proxy, { signal: AbortSignal.timeout(5000) });
-  const data = await r.json();
+  // Try multiple CORS proxies in order
+  const proxies = [
+    `https://corsproxy.io/?${encodeURIComponent(feed.url)}`,
+    `https://api.allorigins.win/get?url=${encodeURIComponent(feed.url)}`,
+  ];
+  let xml = null;
+  for (const proxy of proxies) {
+    try {
+      const r = await fetch(proxy, { signal: AbortSignal.timeout(5000) });
+      const text = proxy.includes('allorigins') ? (await r.json()).contents : await r.text();
+      if (text && text.includes('<item')) { xml = text; break; }
+    } catch { continue; }
+  }
+  if (!xml) throw new Error('All proxies failed');
   const parser = new DOMParser();
-  const doc = parser.parseFromString(data.contents, 'text/xml');
+  const doc = parser.parseFromString(xml, 'text/xml');
   const items = [...doc.querySelectorAll('item')].slice(0, 2);
   return items.map(item => ({
     source: feed.label,
