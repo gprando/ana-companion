@@ -202,15 +202,24 @@ const NEWS_FEEDS = [
 
 async function fetchFeed(feed) {
   // Try multiple CORS proxies in order
-  const proxies = [
-    `https://corsproxy.io/?${encodeURIComponent(feed.url)}`,
-    `https://api.allorigins.win/get?url=${encodeURIComponent(feed.url)}`,
+  const proxyBuilders = [
+    u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+    u => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+    u => `https://thingproxy.freeboard.io/fetch/${u}`,
+    u => `https://cors-anywhere.herokuapp.com/${u}`,
   ];
   let xml = null;
-  for (const proxy of proxies) {
+  for (const build of proxyBuilders) {
+    const proxy = build(feed.url);
     try {
-      const r = await fetch(proxy, { signal: AbortSignal.timeout(5000) });
-      const text = proxy.includes('allorigins') ? (await r.json()).contents : await r.text();
+      const r = await fetch(proxy, { signal: AbortSignal.timeout(6000) });
+      if (!r.ok) continue;
+      let text;
+      if (proxy.includes('allorigins')) {
+        const j = await r.json(); text = j.contents;
+      } else {
+        text = await r.text();
+      }
       if (text && text.includes('<item')) { xml = text; break; }
     } catch { continue; }
   }
@@ -271,14 +280,25 @@ async function loadTasks() {
     return;
   }
   try {
-    // TickTick API: get today's tasks
-    const today = new Date().toISOString().split('T')[0];
-    const r = await fetch(
-      `https://api.ticktick.com/api/v2/task?dueDate=${today}`,
-      { headers: { Authorization: `Bearer ${ANA_CONFIG.ticktick.accessToken}` } }
-    );
-    if (!r.ok) throw new Error('API error');
-    const tasks = await r.json();
+    // TickTick Open API v1 (OAuth2) — get all projects, then undone tasks
+    const projR = await fetch('https://ticktick.com/open/v1/project', {
+      headers: { Authorization: `Bearer ${ANA_CONFIG.ticktick.accessToken}` }
+    });
+    if (!projR.ok) throw new Error('Projects API error ' + projR.status);
+    const projects = await projR.json();
+    // Gather tasks from all projects
+    const allTasks = [];
+    for (const proj of projects.slice(0, 10)) {
+      try {
+        const tr = await fetch(`https://ticktick.com/open/v1/project/${proj.id}/data`, {
+          headers: { Authorization: `Bearer ${ANA_CONFIG.ticktick.accessToken}` }
+        });
+        if (!tr.ok) continue;
+        const pd = await tr.json();
+        (pd.tasks || []).forEach(t => allTasks.push({...t, projectName: proj.name}));
+      } catch { continue; }
+    }
+    const tasks = allTasks.filter(t => t.status === 0 || t.status == null);
     if (!tasks.length) {
       list.innerHTML = `<li class="task-item"><div class="task-text">No tasks due today 🎉</div></li>`;
       return;
