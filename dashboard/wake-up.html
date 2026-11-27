@@ -428,16 +428,56 @@ async function loadNextEvent() {
 loadNextEvent();
 
 /* ══════════════════════════════════════════════
-   SPOTIFY — currently playing
+   SPOTIFY — currently playing + auto token refresh
    Requires: ANA_CONFIG.spotify.accessToken
+             ANA_CONFIG.spotify.refreshToken
+             ANA_CONFIG.spotify.clientId
+             ANA_CONFIG.spotify.clientSecret
 ══════════════════════════════════════════════ */
+async function spotifyRefreshToken() {
+  try {
+    const cfg = ANA_CONFIG.spotify;
+    const r = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': 'Basic ' + btoa(cfg.clientId + ':' + cfg.clientSecret)
+      },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: cfg.refreshToken
+      })
+    });
+    const data = await r.json();
+    if (data.access_token) {
+      ANA_CONFIG.spotify.accessToken = data.access_token;
+      return true;
+    }
+  } catch { /* silent fail */ }
+  return false;
+}
+
 async function loadSpotify() {
   if (typeof ANA_CONFIG === 'undefined' || !ANA_CONFIG.spotify?.accessToken) return;
   try {
-    const r = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
+    let r = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
       headers: { Authorization: `Bearer ${ANA_CONFIG.spotify.accessToken}` }
     });
-    if (r.status === 204) return; // Nothing playing
+    // If token expired, refresh and retry once
+    if (r.status === 401) {
+      const ok = await spotifyRefreshToken();
+      if (!ok) return;
+      r = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
+        headers: { Authorization: `Bearer ${ANA_CONFIG.spotify.accessToken}` }
+      });
+    }
+    if (r.status === 204) {
+      // Nothing playing
+      document.getElementById('track-title').textContent = 'Nothing playing';
+      document.getElementById('track-artist').textContent = '';
+      document.getElementById('music-wave').style.display = 'none';
+      return;
+    }
     const data = await r.json();
     if (data.item) {
       document.getElementById('track-title').textContent  = data.item.name;
