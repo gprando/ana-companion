@@ -4,6 +4,24 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ANA Companion — TV Setup</title>
+<script>
+(function() {
+  const KEY = 'ana_setup_auth';
+  const HASH = '3e2c5b4a9f1d6e8b7c0a2d4f5e9b3c1a'; // sha-like marker, real check below
+  if (localStorage.getItem(KEY) !== '563899_ok') {
+    const pwd = prompt('Enter setup password:');
+    if (pwd !== '563899') {
+      document.addEventListener('DOMContentLoaded', function() {
+        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0d0d1a;color:#e0e0f0;font-family:sans-serif;font-size:1.5rem;">Access denied.</div>';
+      });
+      // block further execution
+      document.write('<style>body{display:none!important}</style>');
+      throw new Error('Access denied');
+    }
+    localStorage.setItem(KEY, '563899_ok');
+  }
+})();
+</script>
 <style>
   :root {
     --bg: #0d0d1a;
