@@ -203,23 +203,29 @@ const NEWS_FEEDS = [
 async function fetchFeed(feed) {
   // Try multiple CORS proxies in order
   const proxyBuilders = [
-    u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
-    u => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
-    u => `https://thingproxy.freeboard.io/fetch/${u}`,
-    u => `https://cors-anywhere.herokuapp.com/${u}`,
+    u => ({ url: `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`, json: true }),
+    u => ({ url: `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(u)}`, rss2json: true }),
+    u => ({ url: `https://corsproxy.io/?${encodeURIComponent(u)}`, json: false }),
   ];
   let xml = null;
   for (const build of proxyBuilders) {
-    const proxy = build(feed.url);
+    const { url: proxy, json, rss2json } = build(feed.url);
     try {
-      const r = await fetch(proxy, { signal: AbortSignal.timeout(6000) });
+      const r = await fetch(proxy, { signal: AbortSignal.timeout(8000) });
       if (!r.ok) continue;
-      let text;
-      if (proxy.includes('allorigins')) {
-        const j = await r.json(); text = j.contents;
-      } else {
-        text = await r.text();
+      if (rss2json) {
+        // rss2json returns JSON — convert to fake XML string for parser
+        const d = await r.json();
+        if (d.status !== 'ok') continue;
+        xml = d.items.slice(0, 5).map(i =>
+          `<item><title>${i.title}</title><link>${i.link}</link><description>${i.description||''}</description></item>`
+        ).join('');
+        xml = `<rss><channel>${xml}</channel></rss>`;
+        break;
       }
+      let text;
+      if (json) { const j = await r.json(); text = j.contents; }
+      else { text = await r.text(); }
       if (text && text.includes('<item')) { xml = text; break; }
     } catch { continue; }
   }
