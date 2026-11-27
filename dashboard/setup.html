@@ -278,6 +278,12 @@ function loadCurrent() {
     document.getElementById('googleClientId').placeholder = '(saved — paste to update)';
   if (localStorage.getItem('ana_spotify_clientId'))
     document.getElementById('spotifyClientId').placeholder = '(saved — paste to update)';
+
+  // Show saved camera values so user can verify
+  const tapoIp   = localStorage.getItem('ana_tapo_ip');
+  const tapoUser = localStorage.getItem('ana_tapo_user');
+  if (tapoIp)   document.getElementById('tapoIp').placeholder   = '✓ saved: ' + tapoIp;
+  if (tapoUser) document.getElementById('tapoUser').placeholder = '✓ saved: ' + tapoUser;
 }
 
 function saveTokens() {
