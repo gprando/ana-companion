@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ANA Companion — TV Setup</title>
+<style>
+  :root {
+    --bg: #0d0d1a;
+    --card: #1a1a2e;
+    --accent: #7c6af7;
+    --green: #4caf84;
+    --text: #e0e0f0;
+    --muted: #8888aa;
+    --border: #2a2a4a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+  .container { width: 100%; max-width: 800px; }
+  h1 { font-size: 2rem; margin-bottom: 6px; }
+  h1 span { color: var(--accent); }
+  .subtitle { color: var(--muted); margin-bottom: 32px; font-size: 1rem; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 24px;
+  }
+  h2 {
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  h2 .badge {
+    background: var(--accent);
+    color: white;
+    font-size: 0.7rem;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+  .field { margin-bottom: 16px; }
+  label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 6px; }
+  input {
+    width: 100%;
+    background: #111128;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 0.9rem;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    font-family: monospace;
+  }
+  input:focus { border-color: var(--accent); }
+  .btn {
+    display: inline-block;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 14px 32px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    width: 100%;
+    margin-top: 8px;
+  }
+  .btn:hover { opacity: 0.85; }
+  .btn.secondary {
+    background: var(--border);
+    margin-top: 8px;
+  }
+  .status {
+    margin-top: 20px;
+    padding: 14px 18px;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    display: none;
+  }
+  .status.success { background: #1a3a2a; border: 1px solid #4caf84; color: #4caf84; display: block; }
+  .status.error   { background: #3a1a1a; border: 1px solid #e05555; color: #e05555; display: block; }
+  .current {
+    background: #111128;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 24px;
+    font-size: 0.85rem;
+  }
+  .current h3 { font-size: 0.85rem; color: var(--muted); margin-bottom: 10px; }
+  .current-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .current-item:last-child { border-bottom: none; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; display: inline-block; }
+  .dot.ok { background: var(--green); }
+  .dot.missing { background: #e05555; }
+  .row { display: flex; gap: 12px; }
+  .row .field { flex: 1; }
+  .launch-links { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+  a.launch-btn {
+    display: block;
+    text-align: center;
+    background: var(--border);
+    color: var(--text);
+    text-decoration: none;
+    padding: 14px;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: background 0.2s;
+  }
+  a.launch-btn:hover { background: var(--accent); }
+  a.launch-btn.primary { background: var(--accent); }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>ANA <span>Companion</span></h1>
+  <p class="subtitle">One-time TV setup — paste your tokens here, they're saved on this device only.</p>
+
+  <div class="current" id="currentStatus">
+    <h3>Saved tokens on this device</h3>
+    <div id="statusItems">Loading…</div>
+  </div>
+
+  <div class="card">
+    <h2>Google Calendar <span class="badge">REQUIRED</span></h2>
+    <div class="field">
+      <label>Client ID</label>
+      <input type="text" id="googleClientId" placeholder="...apps.googleusercontent.com">
+    </div>
+    <div class="field">
+      <label>Client Secret</label>
+      <input type="password" id="googleClientSecret" placeholder="GOCSPX-...">
+    </div>
+    <div class="field">
+      <label>Refresh Token</label>
+      <input type="text" id="googleRefreshToken" placeholder="1//09...">
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Spotify <span class="badge">REQUIRED</span></h2>
+    <div class="row">
+      <div class="field">
+        <label>Client ID</label>
+        <input type="text" id="spotifyClientId" placeholder="22513da9...">
+      </div>
+      <div class="field">
+        <label>Client Secret</label>
+        <input type="password" id="spotifyClientSecret" placeholder="7f053e11...">
+      </div>
+    </div>
+    <div class="field">
+      <label>Refresh Token</label>
+      <input type="text" id="spotifyRefreshToken" placeholder="AQADS3...">
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>TickTick</h2>
+    <div class="field">
+      <label>Access Token</label>
+      <input type="text" id="ticktickToken" placeholder="79e5060b-...">
+    </div>
+  </div>
+
+  <button class="btn" onclick="saveTokens()">💾 Save to this TV</button>
+  <button class="btn secondary" onclick="clearTokens()">🗑 Clear all saved tokens</button>
+  <div class="status" id="saveStatus"></div>
+
+  <div class="card" style="margin-top:32px;">
+    <h2>Launch Dashboard</h2>
+    <p style="color:var(--muted);font-size:0.9rem;margin-bottom:12px;">After saving tokens, open one of these:</p>
+    <div class="launch-links">
+      <a class="launch-btn primary" href="wake-up.html">🌅 Wake Up Mode</a>
+      <a class="launch-btn" href="focus.html">🎯 Focus Mode</a>
+    </div>
+  </div>
+</div>
+
+<script>
+const KEYS = {
+  googleClientId:     'ana_google_clientId',
+  googleClientSecret: 'ana_google_clientSecret',
+  googleRefreshToken: 'ana_google_refreshToken',
+  spotifyClientId:    'ana_spotify_clientId',
+  spotifyClientSecret:'ana_spotify_clientSecret',
+  spotifyRefreshToken:'ana_spotify_refreshToken',
+  ticktickToken:      'ana_ticktick_token',
+};
+
+function loadCurrent() {
+  const checks = [
+    { label: 'Google Client ID',      key: 'ana_google_clientId' },
+    { label: 'Google Client Secret',  key: 'ana_google_clientSecret' },
+    { label: 'Google Refresh Token',  key: 'ana_google_refreshToken' },
+    { label: 'Spotify Client ID',     key: 'ana_spotify_clientId' },
+    { label: 'Spotify Client Secret', key: 'ana_spotify_clientSecret' },
+    { label: 'Spotify Refresh Token', key: 'ana_spotify_refreshToken' },
+    { label: 'TickTick Token',        key: 'ana_ticktick_token' },
+  ];
+  const container = document.getElementById('statusItems');
+  container.innerHTML = checks.map(c => {
+    const val = localStorage.getItem(c.key);
+    const ok = val && val.length > 5;
+    return `<div class="current-item">
+      <span><span class="dot ${ok ? 'ok' : 'missing'}"></span>${c.label}</span>
+      <span style="color:${ok ? 'var(--green)' : '#e05555'};font-size:0.8rem">${ok ? '✓ saved' : 'missing'}</span>
+    </div>`;
+  }).join('');
+
+  // Pre-fill inputs with saved values (masked)
+  if (localStorage.getItem('ana_google_clientId'))
+    document.getElementById('googleClientId').placeholder = '(saved — paste to update)';
+  if (localStorage.getItem('ana_spotify_clientId'))
+    document.getElementById('spotifyClientId').placeholder = '(saved — paste to update)';
+}
+
+function saveTokens() {
+  const fields = {
+    googleClientId:     document.getElementById('googleClientId').value.trim(),
+    googleClientSecret: document.getElementById('googleClientSecret').value.trim(),
+    googleRefreshToken: document.getElementById('googleRefreshToken').value.trim(),
+    spotifyClientId:    document.getElementById('spotifyClientId').value.trim(),
+    spotifyClientSecret:document.getElementById('spotifyClientSecret').value.trim(),
+    spotifyRefreshToken:document.getElementById('spotifyRefreshToken').value.trim(),
+    ticktickToken:      document.getElementById('ticktickToken').value.trim(),
+  };
+
+  let saved = 0;
+  for (const [field, val] of Object.entries(fields)) {
+    if (val) {
+      localStorage.setItem(KEYS[field], val);
+      saved++;
+    }
+  }
+
+  const status = document.getElementById('saveStatus');
+  if (saved > 0) {
+    status.className = 'status success';
+    status.textContent = `✓ ${saved} token(s) saved on this device. Open Wake Up Mode to test.`;
+  } else {
+    status.className = 'status error';
+    status.textContent = 'Nothing to save — paste at least one token first.';
+  }
+  loadCurrent();
+}
+
+function clearTokens() {
+  if (!confirm('Clear all saved tokens from this device?')) return;
+  Object.values(KEYS).forEach(k => localStorage.removeItem(k));
+  // Also clear auto-refreshed access tokens
+  localStorage.removeItem('ana_google_accessToken');
+  localStorage.removeItem('ana_spotify_accessToken');
+  document.getElementById('saveStatus').className = 'status success';
+  document.getElementById('saveStatus').textContent = '✓ All tokens cleared.';
+  loadCurrent();
+}
+
+loadCurrent();
+</script>
+</body>
+</html>

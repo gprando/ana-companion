@@ -393,6 +393,33 @@
 
 <script src="config.js"></script>
 <script>
+/* ══════════════════════════════════════════════
+   TV / GITHUB PAGES: load tokens from localStorage
+   when config.js values are empty.
+   Tokens are saved by dashboard/setup.html
+══════════════════════════════════════════════ */
+(function loadFromLocalStorage() {
+  if (typeof ANA_CONFIG === 'undefined') {
+    window.ANA_CONFIG = { google: {}, spotify: {}, ticktick: {}, sensorUrl: '', personal: {} };
+  }
+  const ls = window.localStorage;
+  ANA_CONFIG.google = ANA_CONFIG.google || {};
+  if (!ANA_CONFIG.google.clientId)     ANA_CONFIG.google.clientId     = ls.getItem('ana_google_clientId')     || '';
+  if (!ANA_CONFIG.google.clientSecret) ANA_CONFIG.google.clientSecret = ls.getItem('ana_google_clientSecret') || '';
+  if (!ANA_CONFIG.google.refreshToken) ANA_CONFIG.google.refreshToken = ls.getItem('ana_google_refreshToken') || '';
+  if (!ANA_CONFIG.google.accessToken)  ANA_CONFIG.google.accessToken  = ls.getItem('ana_google_accessToken')  || '';
+  ANA_CONFIG.spotify = ANA_CONFIG.spotify || {};
+  if (!ANA_CONFIG.spotify.clientId)     ANA_CONFIG.spotify.clientId     = ls.getItem('ana_spotify_clientId')     || '';
+  if (!ANA_CONFIG.spotify.clientSecret) ANA_CONFIG.spotify.clientSecret = ls.getItem('ana_spotify_clientSecret') || '';
+  if (!ANA_CONFIG.spotify.refreshToken) ANA_CONFIG.spotify.refreshToken = ls.getItem('ana_spotify_refreshToken') || '';
+  if (!ANA_CONFIG.spotify.accessToken)  ANA_CONFIG.spotify.accessToken  = ls.getItem('ana_spotify_accessToken')  || '';
+  ANA_CONFIG.ticktick = ANA_CONFIG.ticktick || {};
+  if (!ANA_CONFIG.ticktick.accessToken) ANA_CONFIG.ticktick.accessToken = ls.getItem('ana_ticktick_token') || '';
+  window._persistGoogleToken  = t => ls.setItem('ana_google_accessToken',  t);
+  window._persistSpotifyToken = t => ls.setItem('ana_spotify_accessToken', t);
+})();
+</script>
+<script>
 
 /* ══════════════════════════════════════════════
    CLOCK + DATE
@@ -662,7 +689,7 @@ async function googleRefreshToken() {
       })
     });
     const d = await r.json();
-    if (d.access_token) { ANA_CONFIG.google.accessToken = d.access_token; return true; }
+    if (d.access_token) { ANA_CONFIG.google.accessToken = d.access_token; if (window._persistGoogleToken) window._persistGoogleToken(d.access_token); return true; }
   } catch { }
   return false;
 }
@@ -745,7 +772,7 @@ async function spotifyRefreshToken() {
       body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: cfg.refreshToken })
     });
     const d = await r.json();
-    if (d.access_token) { ANA_CONFIG.spotify.accessToken = d.access_token; return true; }
+    if (d.access_token) { ANA_CONFIG.spotify.accessToken = d.access_token; if (window._persistSpotifyToken) window._persistSpotifyToken(d.access_token); return true; }
   } catch { }
   return false;
 }

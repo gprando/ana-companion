@@ -110,6 +110,39 @@
 
 <script src="config.js"></script>
 <script>
+/* ══════════════════════════════════════════════
+   TV / GITHUB PAGES: load tokens from localStorage
+   when config.js values are empty.
+   Tokens are saved by dashboard/setup.html
+══════════════════════════════════════════════ */
+(function loadFromLocalStorage() {
+  if (typeof ANA_CONFIG === 'undefined') {
+    window.ANA_CONFIG = { google: {}, spotify: {}, ticktick: {}, sensorUrl: '', personal: {} };
+  }
+  const ls = window.localStorage;
+  // Google
+  ANA_CONFIG.google = ANA_CONFIG.google || {};
+  if (!ANA_CONFIG.google.clientId)     ANA_CONFIG.google.clientId     = ls.getItem('ana_google_clientId')     || '';
+  if (!ANA_CONFIG.google.clientSecret) ANA_CONFIG.google.clientSecret = ls.getItem('ana_google_clientSecret') || '';
+  if (!ANA_CONFIG.google.refreshToken) ANA_CONFIG.google.refreshToken = ls.getItem('ana_google_refreshToken') || '';
+  if (!ANA_CONFIG.google.accessToken)  ANA_CONFIG.google.accessToken  = ls.getItem('ana_google_accessToken')  || '';
+  // Spotify
+  ANA_CONFIG.spotify = ANA_CONFIG.spotify || {};
+  if (!ANA_CONFIG.spotify.clientId)     ANA_CONFIG.spotify.clientId     = ls.getItem('ana_spotify_clientId')     || '';
+  if (!ANA_CONFIG.spotify.clientSecret) ANA_CONFIG.spotify.clientSecret = ls.getItem('ana_spotify_clientSecret') || '';
+  if (!ANA_CONFIG.spotify.refreshToken) ANA_CONFIG.spotify.refreshToken = ls.getItem('ana_spotify_refreshToken') || '';
+  if (!ANA_CONFIG.spotify.accessToken)  ANA_CONFIG.spotify.accessToken  = ls.getItem('ana_spotify_accessToken')  || '';
+  // TickTick
+  ANA_CONFIG.ticktick = ANA_CONFIG.ticktick || {};
+  if (!ANA_CONFIG.ticktick.accessToken) ANA_CONFIG.ticktick.accessToken = ls.getItem('ana_ticktick_token') || '';
+  // Persist refreshed access tokens back to localStorage
+  const _origGoogleRefresh   = window._googleRefreshPersist;
+  const _origSpotifyRefresh  = window._spotifyRefreshPersist;
+  window._persistGoogleToken  = t => ls.setItem('ana_google_accessToken',  t);
+  window._persistSpotifyToken = t => ls.setItem('ana_spotify_accessToken', t);
+})();
+</script>
+<script>
 
 /* ══════════════════════════════════════════════
    CLOCK + DATE
@@ -416,6 +449,7 @@ async function googleRefreshToken() {
     const data = await r.json();
     if (data.access_token) {
       ANA_CONFIG.google.accessToken = data.access_token;
+      if (window._persistGoogleToken) window._persistGoogleToken(data.access_token);
       return true;
     }
   } catch { /* silent */ }
@@ -525,6 +559,7 @@ async function spotifyRefreshToken() {
     const data = await r.json();
     if (data.access_token) {
       ANA_CONFIG.spotify.accessToken = data.access_token;
+      if (window._persistSpotifyToken) window._persistSpotifyToken(data.access_token);
       return true;
     }
   } catch { /* silent fail */ }
