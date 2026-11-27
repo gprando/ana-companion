@@ -94,8 +94,26 @@
 
   </div>
 
-  <!-- ── RIGHT: NEWS + CAMERA ── -->
+  <!-- ── RIGHT: WEATHER + NEWS ── -->
   <section class="news-panel">
+
+    <div class="card" id="weather-card">
+      <div class="card-title">☁️ Sundbyberg</div>
+      <div id="weather-main" style="display:flex;align-items:center;gap:16px;margin-bottom:12px;">
+        <div id="weather-icon" style="font-size:2.8rem;line-height:1;">—</div>
+        <div>
+          <div id="weather-temp" style="font-size:2rem;font-weight:700;color:var(--text);">—</div>
+          <div id="weather-feels" style="font-size:0.85rem;color:var(--muted);">Feels like —</div>
+          <div id="weather-desc" style="font-size:0.85rem;color:var(--muted);">—</div>
+        </div>
+        <div style="margin-left:auto;text-align:right;">
+          <div id="weather-wind" style="font-size:0.85rem;color:var(--muted);">💨 —</div>
+          <div id="weather-humidity" style="font-size:0.85rem;color:var(--muted);">💧 —</div>
+        </div>
+      </div>
+      <div id="weather-hours" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;"></div>
+    </div>
+
     <div class="card" style="flex:1;">
       <div class="card-title">World this morning</div>
       <ul class="news-list" id="news-list">
@@ -598,6 +616,67 @@ async function loadSpotify() {
 }
 loadSpotify();
 setInterval(loadSpotify, 30000);
+
+/* ══════════════════════════════════════════════
+   WEATHER — Open-Meteo (free, no API key)
+   Location: Sundbyberg / Hallonbergen
+══════════════════════════════════════════════ */
+const WMO_ICONS = {
+  0:'☀️', 1:'🌤️', 2:'⛅', 3:'☁️',
+  45:'🌫️', 48:'🌫️',
+  51:'🌦️', 53:'🌦️', 55:'🌧️',
+  61:'🌧️', 63:'🌧️', 65:'🌧️',
+  71:'🌨️', 73:'🌨️', 75:'❄️',
+  80:'🌦️', 81:'🌧️', 82:'⛈️',
+  95:'⛈️', 96:'⛈️', 99:'⛈️',
+};
+const WMO_DESC = {
+  0:'Clear sky', 1:'Mainly clear', 2:'Partly cloudy', 3:'Overcast',
+  45:'Foggy', 48:'Icy fog',
+  51:'Light drizzle', 53:'Drizzle', 55:'Heavy drizzle',
+  61:'Light rain', 63:'Rain', 65:'Heavy rain',
+  71:'Light snow', 73:'Snow', 75:'Heavy snow',
+  80:'Showers', 81:'Heavy showers', 82:'Violent showers',
+  95:'Thunderstorm', 96:'Thunderstorm+hail', 99:'Heavy thunderstorm',
+};
+
+async function loadWeather() {
+  try {
+    const url = 'https://api.open-meteo.com/v1/forecast?latitude=59.37&longitude=17.97' +
+      '&current=temperature_2m,apparent_temperature,weathercode,windspeed_10m,relativehumidity_2m' +
+      '&hourly=temperature_2m,apparent_temperature,weathercode' +
+      '&wind_speed_unit=ms&timezone=Europe%2FStockholm&forecast_days=1';
+    const res  = await fetch(url);
+    const data = await res.json();
+    const c    = data.current;
+
+    document.getElementById('weather-icon').textContent    = WMO_ICONS[c.weathercode] || '🌡️';
+    document.getElementById('weather-temp').textContent    = Math.round(c.temperature_2m) + '°C';
+    document.getElementById('weather-feels').textContent   = 'Feels like ' + Math.round(c.apparent_temperature) + '°C';
+    document.getElementById('weather-desc').textContent    = WMO_DESC[c.weathercode] || '';
+    document.getElementById('weather-wind').textContent    = '💨 ' + Math.round(c.windspeed_10m) + ' m/s';
+    document.getElementById('weather-humidity').textContent= '💧 ' + c.relativehumidity_2m + '%';
+
+    // Next 5 hours
+    const now   = new Date();
+    const hours = data.hourly;
+    const slots = [];
+    for (let i = 0; i < hours.time.length && slots.length < 5; i++) {
+      const t = new Date(hours.time[i]);
+      if (t > now) slots.push(i);
+    }
+    document.getElementById('weather-hours').innerHTML = slots.map(i => {
+      const t = new Date(hours.time[i]);
+      return `<div style="text-align:center;min-width:48px;background:#111128;border-radius:8px;padding:6px 4px;">
+        <div style="font-size:0.75rem;color:var(--muted)">${t.getHours()}:00</div>
+        <div style="font-size:1.2rem">${WMO_ICONS[hours.weathercode[i]] || '—'}</div>
+        <div style="font-size:0.8rem;font-weight:600">${Math.round(hours.temperature_2m[i])}°</div>
+      </div>`;
+    }).join('');
+  } catch { /* silent fail */ }
+}
+loadWeather();
+setInterval(loadWeather, 10 * 60 * 1000); // refresh every 10 min
 
 
 </script>
