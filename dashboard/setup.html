@@ -208,6 +208,18 @@
     </div>
   </div>
 
+  <div class="card">
+    <h2>📷 Tapo Camera</h2>
+    <div class="field">
+      <label>TP-Link Email</label>
+      <input type="text" id="tapoEmail" placeholder="your@email.com">
+    </div>
+    <div class="field">
+      <label>TP-Link Password</label>
+      <input type="password" id="tapoPassword" placeholder="••••••••">
+    </div>
+  </div>
+
   <button class="btn" onclick="saveTokens()">💾 Save to this TV</button>
   <button class="btn secondary" onclick="clearTokens()">🗑 Clear all saved tokens</button>
   <div class="status" id="saveStatus"></div>
@@ -232,6 +244,8 @@ const KEYS = {
   spotifyRefreshToken:'ana_spotify_refreshToken',
   spotifyAccessToken: 'ana_spotify_accessToken',
   ticktickToken:      'ana_ticktick_token',
+  tapoEmail:          'ana_tapo_email',
+  tapoPassword:       'ana_tapo_password',
 };
 
 function loadCurrent() {
@@ -271,6 +285,8 @@ function saveTokens() {
     spotifyRefreshToken:document.getElementById('spotifyRefreshToken').value.trim(),
     spotifyAccessToken: document.getElementById('spotifyAccessToken').value.trim(),
     ticktickToken:      document.getElementById('ticktickToken').value.trim(),
+    tapoEmail:          document.getElementById('tapoEmail').value.trim(),
+    tapoPassword:       document.getElementById('tapoPassword').value.trim(),
   };
 
   let saved = 0;
