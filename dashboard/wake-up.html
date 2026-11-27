@@ -102,14 +102,6 @@
         <li class="loading">Fetching headlines…</li>
       </ul>
     </div>
-    <div class="card" id="camera-card" style="padding:8px;">
-      <div class="card-title">📷 Home</div>
-      <div id="camera-wrap" style="width:100%;border-radius:8px;overflow:hidden;background:#000;min-height:120px;display:flex;align-items:center;justify-content:center;">
-        <img id="camera-img" style="width:100%;display:none;border-radius:8px;" alt="Camera">
-        <span id="camera-status" style="color:var(--muted);font-size:0.8rem;">Connecting…</span>
-      </div>
-      <div id="camera-debug" style="font-size:0.7rem;color:#8888aa;margin-top:6px;word-break:break-all;"></div>
-    </div>
   </section>
 
 </div>
@@ -607,57 +599,6 @@ async function loadSpotify() {
 loadSpotify();
 setInterval(loadSpotify, 30000);
 
-/* ══════════════════════════════════════════════
-   TAPO CAMERA — local network snapshot every 10s
-   Uses fetch() with Basic Auth header + blob URL
-   (credentials-in-URL blocked by modern browsers)
-══════════════════════════════════════════════ */
-(function initCamera() {
-  const ip   = localStorage.getItem('ana_tapo_ip');
-  const user = localStorage.getItem('ana_tapo_user');
-  const pass = localStorage.getItem('ana_tapo_pass');
-  const img    = document.getElementById('camera-img');
-  const status = document.getElementById('camera-status');
-
-  // Debug: show what's in localStorage
-  const debug = document.getElementById('camera-debug');
-  if (debug) debug.textContent = `ip="${ip}" user="${user}" pass="${pass ? '***' : ''}"`;
-
-  if (!ip || !user || !pass) {
-    status.textContent = 'No camera set up — open setup.html';
-    return;
-  }
-
-  const authHeader = 'Basic ' + btoa(user + ':' + pass);
-  let blobUrl = null;
-
-  async function refreshCamera() {
-    const paths = ['/snapshot.jpg', '/onvif/snapshot'];
-    for (const path of paths) {
-      try {
-        const res = await fetch(`http://${ip}${path}?t=${Date.now()}`, {
-          headers: { 'Authorization': authHeader },
-          mode: 'cors'
-        });
-        if (res.ok) {
-          const blob = await res.blob();
-          if (blobUrl) URL.revokeObjectURL(blobUrl);
-          blobUrl = URL.createObjectURL(blob);
-          img.src = blobUrl;
-          img.style.display = 'block';
-          status.style.display = 'none';
-          return;
-        }
-      } catch (e) { /* try next path */ }
-    }
-    status.textContent = 'Camera not reachable — connect to home WiFi';
-    status.style.display = 'block';
-    img.style.display = 'none';
-  }
-
-  refreshCamera();
-  setInterval(refreshCamera, 10000);
-})();
 
 </script>
 </body>
