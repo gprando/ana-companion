@@ -1,0 +1,31 @@
+# Personal config and secrets — NEVER commit these
+config/config.js
+config/*.local.js
+.env
+.env.*
+*.env
+
+# API keys and tokens
+secrets/
+credentials/
+*.key
+*.pem
+*.token
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Node (if used later)
+node_modules/
+npm-debug.log
+
+# Logs
+*.log
+logs/
