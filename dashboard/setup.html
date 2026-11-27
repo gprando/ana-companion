@@ -209,14 +209,18 @@
   </div>
 
   <div class="card">
-    <h2>📷 Tapo Camera</h2>
+    <h2>📷 Tapo Camera (local)</h2>
     <div class="field">
-      <label>TP-Link Email</label>
-      <input type="text" id="tapoEmail" placeholder="your@email.com">
+      <label>Camera IP Address <small style="color:var(--muted)">(e.g. 192.168.1.139)</small></label>
+      <input type="text" id="tapoIp" placeholder="192.168.1.139">
     </div>
     <div class="field">
-      <label>TP-Link Password</label>
-      <input type="password" id="tapoPassword" placeholder="••••••••">
+      <label>Camera Account Username</label>
+      <input type="text" id="tapoUser" placeholder="ana">
+    </div>
+    <div class="field">
+      <label>Camera Account Password</label>
+      <input type="password" id="tapoPass" placeholder="••••••••">
     </div>
   </div>
 
@@ -244,8 +248,9 @@ const KEYS = {
   spotifyRefreshToken:'ana_spotify_refreshToken',
   spotifyAccessToken: 'ana_spotify_accessToken',
   ticktickToken:      'ana_ticktick_token',
-  tapoEmail:          'ana_tapo_email',
-  tapoPassword:       'ana_tapo_password',
+  tapoIp:             'ana_tapo_ip',
+  tapoUser:           'ana_tapo_user',
+  tapoPass:           'ana_tapo_pass',
 };
 
 function loadCurrent() {
@@ -285,8 +290,9 @@ function saveTokens() {
     spotifyRefreshToken:document.getElementById('spotifyRefreshToken').value.trim(),
     spotifyAccessToken: document.getElementById('spotifyAccessToken').value.trim(),
     ticktickToken:      document.getElementById('ticktickToken').value.trim(),
-    tapoEmail:          document.getElementById('tapoEmail').value.trim(),
-    tapoPassword:       document.getElementById('tapoPassword').value.trim(),
+    tapoIp:             document.getElementById('tapoIp').value.trim(),
+    tapoUser:           document.getElementById('tapoUser').value.trim(),
+    tapoPass:           document.getElementById('tapoPass').value.trim(),
   };
 
   let saved = 0;

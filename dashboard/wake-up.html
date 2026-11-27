@@ -606,98 +606,52 @@ loadSpotify();
 setInterval(loadSpotify, 30000);
 
 /* ══════════════════════════════════════════════
-   TAPO CAMERA — cloud snapshot every 10s
+   TAPO CAMERA — local network snapshot every 10s
+   Uses http://CAMERA-IP/snapshot.jpg with digest auth
 ══════════════════════════════════════════════ */
-(async function initCamera() {
-  const email    = localStorage.getItem('ana_tapo_email');
-  const password = localStorage.getItem('ana_tapo_password');
-  if (!email || !password) {
-    document.getElementById('camera-status').textContent = 'No camera credentials — set up in setup.html';
+(function initCamera() {
+  const ip   = localStorage.getItem('ana_tapo_ip');
+  const user = localStorage.getItem('ana_tapo_user');
+  const pass = localStorage.getItem('ana_tapo_pass');
+  const img    = document.getElementById('camera-img');
+  const status = document.getElementById('camera-status');
+
+  if (!ip || !user || !pass) {
+    status.textContent = 'No camera set up — open setup.html';
     return;
   }
 
-  const CLOUD = 'https://wap.tplinkcloud.com';
-  let cloudToken = null;
-  let deviceId   = null;
+  // Build basic-auth URL — works for Tapo local snapshot endpoint
+  const snapBase = `http://${user}:${pass}@${ip}/snapshot.jpg`;
 
-  async function tapoPost(url, body) {
-    const r = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    return r.json();
+  function refreshCamera() {
+    const url = `http://${user}:${pass}@${ip}/snapshot.jpg?t=${Date.now()}`;
+    const testImg = new Image();
+    testImg.onload = () => {
+      img.src = url;
+      img.style.display = 'block';
+      status.style.display = 'none';
+    };
+    testImg.onerror = () => {
+      // Try ONVIF snapshot path as fallback
+      const url2 = `http://${user}:${pass}@${ip}/onvif/snapshot?t=${Date.now()}`;
+      const testImg2 = new Image();
+      testImg2.onload = () => {
+        img.src = url2;
+        img.style.display = 'block';
+        status.style.display = 'none';
+      };
+      testImg2.onerror = () => {
+        status.textContent = 'Camera not reachable — connect to home WiFi';
+        status.style.display = 'block';
+        img.style.display = 'none';
+      };
+      testImg2.src = url2;
+    };
+    testImg.src = `http://${user}:${pass}@${ip}/snapshot.jpg?t=${Date.now()}`;
   }
 
-  // Step 1: login
-  async function login() {
-    const data = await tapoPost(CLOUD, {
-      method: 'login',
-      params: { appType: 'Tapo_Android', cloudUserName: email, cloudPassword: password, terminalUUID: 'ana-dashboard' }
-    });
-    if (data.error_code === 0) { cloudToken = data.result.token; return true; }
-    return false;
-  }
-
-  // Step 2: get device
-  async function getDevice() {
-    const data = await tapoPost(`${CLOUD}?token=${cloudToken}`, {
-      method: 'getDeviceList', params: {}
-    });
-    if (data.error_code === 0) {
-      const cam = data.result.deviceList.find(d => d.alias === 'Tapo C120GP' || d.deviceType === 'SMART.IPCAMERA');
-      if (cam) { deviceId = cam.deviceId; return true; }
-    }
-    return false;
-  }
-
-  // Step 3: get snapshot URL via passthrough
-  async function getSnapshot() {
-    if (!cloudToken || !deviceId) return null;
-    try {
-      const data = await tapoPost(`${CLOUD}?token=${cloudToken}`, {
-        method: 'passthrough',
-        params: {
-          deviceId,
-          requestData: JSON.stringify({ method: 'getVideoQualities', params: {} })
-        }
-      });
-      // Try to get a snapshot URL from the response
-      if (data.error_code === 0 && data.result) {
-        const inner = JSON.parse(data.result.responseData || '{}');
-        // Fallback: build thumbnail URL pattern used by Tapo
-        return `${CLOUD}/snapshot/${deviceId}?token=${cloudToken}&t=${Date.now()}`;
-      }
-    } catch {}
-    return null;
-  }
-
-  async function refreshCamera() {
-    const img    = document.getElementById('camera-img');
-    const status = document.getElementById('camera-status');
-    try {
-      if (!cloudToken) {
-        const ok = await login();
-        if (!ok) { status.textContent = 'Camera login failed'; return; }
-      }
-      if (!deviceId) {
-        const ok = await getDevice();
-        if (!ok) { status.textContent = 'Camera not found'; return; }
-      }
-      // Use direct snapshot endpoint
-      const snapUrl = `${CLOUD}/snapshot/${deviceId}?token=${cloudToken}&t=${Date.now()}`;
-      img.onload  = () => { img.style.display = 'block'; status.style.display = 'none'; };
-      img.onerror = () => { status.textContent = 'Snapshot unavailable'; };
-      img.src = snapUrl;
-    } catch (e) {
-      status.textContent = 'Camera error';
-    }
-  }
-
-  const ok = await login();
-  if (!ok) { document.getElementById('camera-status').textContent = 'Camera login failed — check credentials'; return; }
-  await getDevice();
-  await refreshCamera();
+  refreshCamera();
   setInterval(refreshCamera, 10000);
 })();
 
