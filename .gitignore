@@ -1,5 +1,6 @@
 # Personal config and secrets — NEVER commit these
 config/config.js
+dashboard/config.js
 config/*.local.js
 .env
 .env.*

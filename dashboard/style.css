@@ -1,0 +1,448 @@
+/* ANA Companion — TV Dashboard Styles */
+/* Optimized for 1920×1080 Samsung TV display */
+
+:root {
+  --bg: #0a0a0f;
+  --bg2: #12121a;
+  --bg3: #1a1a26;
+  --accent: #7c6af7;
+  --accent2: #a78bfa;
+  --warm: #f59e6b;
+  --green: #34d399;
+  --blue: #60a5fa;
+  --text: #e8e6f0;
+  --text2: #9994b8;
+  --text3: #605e7a;
+  --card: rgba(255,255,255,0.04);
+  --card-border: rgba(255,255,255,0.08);
+  --radius: 20px;
+  --radius-sm: 12px;
+  font-size: 20px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  min-height: 100vh;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Layout ─────────────────────────────────────────── */
+.dashboard {
+  display: grid;
+  height: 100vh;
+  padding: 32px;
+  gap: 20px;
+  grid-template-areas:
+    "header header header"
+    "tasks  center news  "
+    "tasks  bottom news  ";
+  grid-template-rows: auto 1fr 1fr;
+  grid-template-columns: 320px 1fr 320px;
+}
+
+/* ── Header ─────────────────────────────────────────── */
+.header {
+  grid-area: header;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-left {
+  display: flex;
+  flex-direction: column;
+}
+
+.greeting {
+  font-size: 2.2rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.greeting .name {
+  color: var(--accent2);
+}
+
+.date-line {
+  font-size: 0.9rem;
+  color: var(--text2);
+  margin-top: 4px;
+}
+
+.header-right {
+  text-align: right;
+}
+
+.clock {
+  font-size: 3.5rem;
+  font-weight: 300;
+  letter-spacing: -1px;
+  color: var(--text);
+  line-height: 1;
+}
+
+.clock-sub {
+  font-size: 0.8rem;
+  color: var(--text3);
+  margin-top: 4px;
+}
+
+/* ── Cards ─────────────────────────────────────────── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 24px;
+  overflow: hidden;
+}
+
+.card-title {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-title::before {
+  content: '';
+  display: inline-block;
+  width: 3px;
+  height: 12px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+
+/* ── Tasks panel ─────────────────────────────────────── */
+.tasks-panel {
+  grid-area: tasks;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.task-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  overflow: hidden;
+}
+
+.task-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.2s;
+}
+
+.task-item.priority {
+  border-color: rgba(124, 106, 247, 0.4);
+  background: rgba(124, 106, 247, 0.07);
+}
+
+.task-check {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--text3);
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.task-item.priority .task-check {
+  border-color: var(--accent2);
+}
+
+.task-text {
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.task-meta {
+  font-size: 0.7rem;
+  color: var(--text3);
+  margin-top: 2px;
+}
+
+.priority-badge {
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--accent2);
+  background: rgba(167, 139, 250, 0.15);
+  padding: 2px 8px;
+  border-radius: 100px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  margin-left: auto;
+}
+
+/* ── Quote card ─────────────────────────────────────── */
+.quote-card {
+  grid-area: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  background: linear-gradient(135deg, rgba(124,106,247,0.12), rgba(96,165,250,0.08));
+  border-color: rgba(124,106,247,0.2);
+  position: relative;
+  overflow: visible;
+}
+
+.quote-mark {
+  font-size: 8rem;
+  color: rgba(124,106,247,0.1);
+  font-family: Georgia, serif;
+  line-height: 0.5;
+  position: absolute;
+  top: 20px;
+  left: 24px;
+}
+
+.quote-text {
+  font-size: 1.3rem;
+  font-weight: 500;
+  line-height: 1.6;
+  color: var(--text);
+  max-width: 480px;
+  position: relative;
+  z-index: 1;
+}
+
+.quote-author {
+  font-size: 0.75rem;
+  color: var(--accent2);
+  margin-top: 16px;
+  letter-spacing: 0.5px;
+}
+
+/* ── Climate card ─────────────────────────────────────── */
+.climate-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.climate-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.climate-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.climate-icon {
+  font-size: 1.3rem;
+}
+
+.climate-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.climate-label {
+  font-size: 0.65rem;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.climate-status {
+  font-size: 0.75rem;
+  color: var(--green);
+  background: rgba(52, 211, 153, 0.1);
+  padding: 4px 10px;
+  border-radius: 100px;
+}
+
+/* ── Music bar ─────────────────────────────────────── */
+.music-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: rgba(52, 211, 153, 0.06);
+  border: 1px solid rgba(52, 211, 153, 0.15);
+  border-radius: var(--radius-sm);
+}
+
+.music-icon {
+  font-size: 1.3rem;
+}
+
+.music-info {
+  flex: 1;
+}
+
+.music-title {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.music-artist {
+  font-size: 0.7rem;
+  color: var(--text3);
+}
+
+.music-wave {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 20px;
+}
+
+.music-wave span {
+  display: block;
+  width: 3px;
+  background: var(--green);
+  border-radius: 2px;
+  animation: wave 1.2s ease-in-out infinite;
+}
+
+.music-wave span:nth-child(2) { animation-delay: 0.2s; }
+.music-wave span:nth-child(3) { animation-delay: 0.4s; }
+.music-wave span:nth-child(4) { animation-delay: 0.1s; }
+.music-wave span:nth-child(5) { animation-delay: 0.3s; }
+
+@keyframes wave {
+  0%, 100% { height: 6px; }
+  50% { height: 18px; }
+}
+
+/* ── News panel ─────────────────────────────────────── */
+.news-panel {
+  grid-area: news;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.news-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.news-item {
+  padding: 12px 16px;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+}
+
+.news-source {
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--blue);
+  margin-bottom: 4px;
+}
+
+.news-headline {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.news-time {
+  font-size: 0.65rem;
+  color: var(--text3);
+  margin-top: 4px;
+}
+
+/* ── Loading state ─────────────────────────────────── */
+.loading {
+  color: var(--text3);
+  font-size: 0.75rem;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* ── Bottom row ─────────────────────────────────────── */
+.bottom-row {
+  grid-area: bottom;
+  display: flex;
+  gap: 16px;
+}
+
+.bottom-row .card {
+  flex: 1;
+}
+
+/* ── Ana signature ─────────────────────────────────── */
+.ana-sig {
+  position: fixed;
+  bottom: 16px;
+  right: 24px;
+  font-size: 0.6rem;
+  color: var(--text3);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/* ── Mode pill ─────────────────────────────────────── */
+.mode-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  border-radius: 100px;
+  margin-left: 16px;
+}
+
+.mode-pill.wake-up {
+  background: rgba(245, 158, 107, 0.15);
+  color: var(--warm);
+  border: 1px solid rgba(245, 158, 107, 0.3);
+}
+
+.mode-pill .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: blink 2s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}

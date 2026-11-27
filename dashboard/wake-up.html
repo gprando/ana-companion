@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ANA — Wake Up Mode</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Wake-up specific: warm sunrise gradient on bg */
+    body {
+      background: radial-gradient(ellipse at 50% 100%, rgba(245,158,107,0.08) 0%, var(--bg) 60%);
+    }
+  </style>
+</head>
+<body>
+
+<div class="dashboard">
+
+  <!-- ── HEADER ── -->
+  <header class="header">
+    <div class="header-left">
+      <div class="greeting">
+        God morgon, <span class="name">Gabi</span> ☀️
+        <span class="mode-pill wake-up"><span class="dot"></span>Wake Up</span>
+      </div>
+      <div class="date-line" id="date-line">Loading date…</div>
+    </div>
+    <div class="header-right">
+      <div class="clock" id="clock">05:30</div>
+      <div class="clock-sub">Stockholm</div>
+    </div>
+  </header>
+
+  <!-- ── LEFT: TASKS ── -->
+  <section class="tasks-panel">
+
+    <div class="card" style="flex:1;">
+      <div class="card-title">Today's focus</div>
+      <ul class="task-list" id="task-list">
+        <li class="loading">Connecting to TickTick…</li>
+      </ul>
+    </div>
+
+    <!-- Climate -->
+    <div class="card climate-card">
+      <div class="card-title">Home climate</div>
+      <div class="climate-row">
+        <div class="climate-item">
+          <span class="climate-icon">🌡️</span>
+          <div>
+            <div class="climate-value" id="temperature">—°C</div>
+            <div class="climate-label">Temperature</div>
+          </div>
+        </div>
+        <div class="climate-item">
+          <span class="climate-icon">💧</span>
+          <div>
+            <div class="climate-value" id="humidity">— %</div>
+            <div class="climate-label">Humidity</div>
+          </div>
+        </div>
+        <div class="climate-status" id="climate-status">—</div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ── CENTER: QUOTE ── -->
+  <main class="card quote-card">
+    <div class="quote-mark">"</div>
+    <div class="quote-text" id="quote-text">Loading your morning quote…</div>
+    <div class="quote-author" id="quote-author">— ANA</div>
+  </main>
+
+  <!-- ── BOTTOM CENTER: MUSIC + CALENDAR ── -->
+  <div class="bottom-row">
+
+    <!-- Music -->
+    <div class="card" style="display:flex;flex-direction:column;gap:12px;">
+      <div class="card-title">Now playing</div>
+      <div class="music-bar">
+        <span class="music-icon">🎵</span>
+        <div class="music-info">
+          <div class="music-title" id="track-title">Connecting to Spotify…</div>
+          <div class="music-artist" id="track-artist">Morning playlist</div>
+        </div>
+        <div class="music-wave" id="music-wave" style="display:none;">
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Next calendar event -->
+    <div class="card">
+      <div class="card-title">Next up</div>
+      <div id="next-event" class="loading">Loading calendar…</div>
+    </div>
+
+  </div>
+
+  <!-- ── RIGHT: NEWS ── -->
+  <section class="news-panel">
+    <div class="card" style="flex:1;">
+      <div class="card-title">World this morning</div>
+      <ul class="news-list" id="news-list">
+        <li class="loading">Fetching headlines…</li>
+      </ul>
+    </div>
+  </section>
+
+</div>
+
+<div class="ana-sig">ANA Companion · Wake Up</div>
+
+<script src="config.js"></script>
+<script>
+
+/* ══════════════════════════════════════════════
+   CLOCK + DATE
+══════════════════════════════════════════════ */
+function updateClock() {
+  const now = new Date();
+  const time = now.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+  document.getElementById('clock').textContent = time;
+
+  const date = now.toLocaleDateString('en-GB', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+  });
+  document.getElementById('date-line').textContent = date;
+}
+updateClock();
+setInterval(updateClock, 10000);
+
+/* ══════════════════════════════════════════════
+   QUOTES  (offline fallback bank)
+   Replace with API call if you have one.
+══════════════════════════════════════════════ */
+const QUOTES = [
+  { text: "The secret of getting ahead is getting started.", author: "Mark Twain" },
+  { text: "You don't have to be great to start, but you have to start to be great.", author: "Zig Ziglar" },
+  { text: "Progress, not perfection.", author: "ANA" },
+  { text: "One task. One block. One win.", author: "ANA" },
+  { text: "Your brain works differently. That's your edge.", author: "ANA" },
+  { text: "Rest is not laziness. It's fuel.", author: "ANA" },
+  { text: "Small steps every day make mountains move.", author: "ANA" },
+  { text: "It does not matter how slowly you go, as long as you do not stop.", author: "Confucius" },
+  { text: "The present moment is where life lives.", author: "Thích Nhất Hạnh" },
+  { text: "Done is better than perfect.", author: "Sheryl Sandberg" },
+  { text: "You are allowed to be both a masterpiece and a work in progress.", author: "Sophia Bush" },
+  { text: "Curiosity is the engine of achievement.", author: "Ken Robinson" },
+  { text: "Hard work beats talent when talent doesn't work hard.", author: "Tim Notke" },
+  { text: "In the middle of every difficulty lies opportunity.", author: "Albert Einstein" },
+  { text: "Believe you can and you're halfway there.", author: "Theodore Roosevelt" },
+];
+
+function showDailyQuote() {
+  // Deterministic daily pick — same quote all morning
+  const idx = new Date().getDay() + new Date().getDate();
+  const q = QUOTES[idx % QUOTES.length];
+  document.getElementById('quote-text').textContent = q.text;
+  document.getElementById('quote-author').textContent = `— ${q.author}`;
+}
+showDailyQuote();
+
+/* ══════════════════════════════════════════════
+   CLIMATE  (read from sensor API or mock)
+══════════════════════════════════════════════ */
+async function loadClimate() {
+  // If you expose sensor data via a local endpoint, fetch it here.
+  // For now we show a friendly placeholder.
+  if (typeof ANA_CONFIG !== 'undefined' && ANA_CONFIG.sensorUrl) {
+    try {
+      const r = await fetch(ANA_CONFIG.sensorUrl);
+      const d = await r.json();
+      document.getElementById('temperature').textContent = `${d.temperature}°C`;
+      document.getElementById('humidity').textContent   = `${d.humidity} %`;
+      const ok = d.temperature >= 18 && d.temperature <= 24 && d.humidity >= 40 && d.humidity <= 60;
+      document.getElementById('climate-status').textContent = ok ? '✓ Comfortable' : '⚠ Adjust';
+      document.getElementById('climate-status').style.color = ok ? 'var(--green)' : 'var(--warm)';
+    } catch {
+      showClimateFallback();
+    }
+  } else {
+    showClimateFallback();
+  }
+}
+
+function showClimateFallback() {
+  document.getElementById('temperature').textContent = '20°C';
+  document.getElementById('humidity').textContent    = '45 %';
+  document.getElementById('climate-status').textContent = '• Sensor offline';
+  document.getElementById('climate-status').style.color = 'var(--text3)';
+}
+loadClimate();
+setInterval(loadClimate, 60000);
+
+/* ══════════════════════════════════════════════
+   NEWS  — RSS via allorigins proxy
+   Falls back gracefully if offline
+══════════════════════════════════════════════ */
+const NEWS_FEEDS = [
+  { label: 'SVT',    url: 'https://www.svt.se/nyheter/rss.xml' },
+  { label: 'BBC',    url: 'https://feeds.bbci.co.uk/news/world/rss.xml' },
+  { label: 'Nature', url: 'https://www.nature.com/news.rss' },
+];
+
+async function fetchFeed(feed) {
+  const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(feed.url)}`;
+  const r = await fetch(proxy, { signal: AbortSignal.timeout(5000) });
+  const data = await r.json();
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(data.contents, 'text/xml');
+  const items = [...doc.querySelectorAll('item')].slice(0, 2);
+  return items.map(item => ({
+    source: feed.label,
+    title: item.querySelector('title')?.textContent?.trim() ?? '',
+    pubDate: item.querySelector('pubDate')?.textContent?.trim() ?? '',
+  }));
+}
+
+async function loadNews() {
+  const list = document.getElementById('news-list');
+  try {
+    const results = await Promise.allSettled(NEWS_FEEDS.map(fetchFeed));
+    const items = results
+      .filter(r => r.status === 'fulfilled')
+      .flatMap(r => r.value)
+      .slice(0, 6);
+
+    if (items.length === 0) throw new Error('No items');
+
+    list.innerHTML = items.map(it => `
+      <li class="news-item">
+        <div class="news-source">${it.source}</div>
+        <div class="news-headline">${it.title}</div>
+        ${it.pubDate ? `<div class="news-time">${formatNewsDate(it.pubDate)}</div>` : ''}
+      </li>
+    `).join('');
+  } catch {
+    list.innerHTML = `<li class="news-item">
+      <div class="news-source">ANA</div>
+      <div class="news-headline">Could not load news. Check your connection.</div>
+    </li>`;
+  }
+}
+
+function formatNewsDate(raw) {
+  try {
+    const d = new Date(raw);
+    return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  } catch { return ''; }
+}
+loadNews();
+
+/* ══════════════════════════════════════════════
+   TASKS  — TickTick OAuth2
+   Requires: ANA_CONFIG.ticktick.accessToken
+   Falls back to a motivational placeholder.
+══════════════════════════════════════════════ */
+async function loadTasks() {
+  const list = document.getElementById('task-list');
+  if (typeof ANA_CONFIG === 'undefined' || !ANA_CONFIG.ticktick?.accessToken) {
+    showTaskPlaceholder(list);
+    return;
+  }
+  try {
+    // TickTick API: get today's tasks
+    const today = new Date().toISOString().split('T')[0];
+    const r = await fetch(
+      `https://api.ticktick.com/api/v2/task?dueDate=${today}`,
+      { headers: { Authorization: `Bearer ${ANA_CONFIG.ticktick.accessToken}` } }
+    );
+    if (!r.ok) throw new Error('API error');
+    const tasks = await r.json();
+    if (!tasks.length) {
+      list.innerHTML = `<li class="task-item"><div class="task-text">No tasks due today 🎉</div></li>`;
+      return;
+    }
+    // Sort: priority 1 (high) first
+    tasks.sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0));
+    list.innerHTML = tasks.slice(0, 7).map((t, i) => `
+      <li class="task-item ${i === 0 ? 'priority' : ''}">
+        <div class="task-check"></div>
+        <div>
+          <div class="task-text">${t.title}</div>
+          ${t.dueDate ? `<div class="task-meta">${formatTaskTime(t.dueDate)}</div>` : ''}
+        </div>
+        ${i === 0 ? `<span class="priority-badge">★ today</span>` : ''}
+      </li>
+    `).join('');
+  } catch {
+    showTaskPlaceholder(list);
+  }
+}
+
+function formatTaskTime(iso) {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  } catch { return ''; }
+}
+
+function showTaskPlaceholder(list) {
+  list.innerHTML = `
+    <li class="task-item priority">
+      <div class="task-check"></div>
+      <div>
+        <div class="task-text">Set up TickTick API token</div>
+        <div class="task-meta">See config/config.example.js</div>
+      </div>
+      <span class="priority-badge">★ today</span>
+    </li>
+    <li class="task-item">
+      <div class="task-check"></div>
+      <div class="task-text">Go to the gym 💪</div>
+    </li>
+    <li class="task-item">
+      <div class="task-check"></div>
+      <div class="task-text">Start deep work block at 08:30</div>
+    </li>
+    <li class="task-item">
+      <div class="task-check"></div>
+      <div class="task-text">SFI tonight — 17:30</div>
+    </li>
+  `;
+}
+loadTasks();
+
+/* ══════════════════════════════════════════════
+   GOOGLE CALENDAR — next event
+   Requires: ANA_CONFIG.google accessToken + calendarId
+══════════════════════════════════════════════ */
+async function loadNextEvent() {
+  const el = document.getElementById('next-event');
+  if (typeof ANA_CONFIG === 'undefined' || !ANA_CONFIG.google?.accessToken) {
+    el.innerHTML = `<span style="color:var(--text2);font-size:0.8rem;">🔑 Connect Google Calendar in config.js</span>`;
+    return;
+  }
+  try {
+    const now = new Date().toISOString();
+    const end = new Date(Date.now() + 8 * 3600 * 1000).toISOString();
+    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ANA_CONFIG.google.calendarId)}/events`
+      + `?timeMin=${now}&timeMax=${end}&singleEvents=true&orderBy=startTime&maxResults=3`;
+    const r = await fetch(url, {
+      headers: { Authorization: `Bearer ${ANA_CONFIG.google.accessToken}` }
+    });
+    const data = await r.json();
+    const events = data.items ?? [];
+    if (!events.length) {
+      el.innerHTML = `<span style="color:var(--green);font-size:0.8rem;">✓ No meetings this morning</span>`;
+      return;
+    }
+    el.innerHTML = events.slice(0, 2).map(ev => {
+      const start = ev.start?.dateTime ?? ev.start?.date;
+      const time = start ? new Date(start).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
+      return `<div style="margin-bottom:8px;">
+        <div style="font-size:0.85rem;font-weight:500;">${ev.summary}</div>
+        <div style="font-size:0.7rem;color:var(--text3);">${time}</div>
+      </div>`;
+    }).join('');
+  } catch {
+    el.innerHTML = `<span style="color:var(--text3);font-size:0.75rem;">Calendar unavailable</span>`;
+  }
+}
+loadNextEvent();
+
+/* ══════════════════════════════════════════════
+   SPOTIFY — currently playing
+   Requires: ANA_CONFIG.spotify.accessToken
+══════════════════════════════════════════════ */
+async function loadSpotify() {
+  if (typeof ANA_CONFIG === 'undefined' || !ANA_CONFIG.spotify?.accessToken) return;
+  try {
+    const r = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
+      headers: { Authorization: `Bearer ${ANA_CONFIG.spotify.accessToken}` }
+    });
+    if (r.status === 204) return; // Nothing playing
+    const data = await r.json();
+    if (data.item) {
+      document.getElementById('track-title').textContent  = data.item.name;
+      document.getElementById('track-artist').textContent = data.item.artists.map(a => a.name).join(', ');
+      document.getElementById('music-wave').style.display = 'flex';
+    }
+  } catch { /* silent fail */ }
+}
+loadSpotify();
+setInterval(loadSpotify, 30000);
+
+</script>
+</body>
+</html>
