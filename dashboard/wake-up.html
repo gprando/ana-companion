@@ -116,7 +116,15 @@
 
 <div class="ana-sig">ANA Companion · Wake Up</div>
 
-<script src="config.js"></script>
+<script>
+/* config.js is local-only — load it if present, ignore if not */
+(function() {
+  var s = document.createElement('script');
+  s.src = 'config.js';
+  s.onerror = function() {}; // silently ignore 404
+  document.head.appendChild(s);
+})();
+</script>
 <script>
 /* ══════════════════════════════════════════════
    TV / GITHUB PAGES: load tokens from localStorage
