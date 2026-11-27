@@ -108,6 +108,7 @@
         <img id="camera-img" style="width:100%;display:none;border-radius:8px;" alt="Camera">
         <span id="camera-status" style="color:var(--muted);font-size:0.8rem;">Connecting…</span>
       </div>
+      <div id="camera-debug" style="font-size:0.7rem;color:#8888aa;margin-top:6px;word-break:break-all;"></div>
     </div>
   </section>
 
@@ -616,6 +617,10 @@ setInterval(loadSpotify, 30000);
   const pass = localStorage.getItem('ana_tapo_pass');
   const img    = document.getElementById('camera-img');
   const status = document.getElementById('camera-status');
+
+  // Debug: show what's in localStorage
+  const debug = document.getElementById('camera-debug');
+  if (debug) debug.textContent = `ip="${ip}" user="${user}" pass="${pass ? '***' : ''}"`;
 
   if (!ip || !user || !pass) {
     status.textContent = 'No camera set up — open setup.html';
