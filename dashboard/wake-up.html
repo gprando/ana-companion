@@ -311,16 +311,46 @@ async function loadTasks() {
     }
     // Sort: priority 1 (high) first
     tasks.sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0));
-    list.innerHTML = tasks.slice(0, 7).map((t, i) => `
-      <li class="task-item ${i === 0 ? 'priority' : ''}">
-        <div class="task-check"></div>
+    const topTasks = tasks.slice(0, 7);
+    list.innerHTML = topTasks.map((t, i) => `
+      <li class="task-item ${i === 0 ? 'priority' : ''}" data-id="${t.id}" data-project="${t.projectId}" style="cursor:pointer">
+        <div class="task-check" id="check-${t.id}"></div>
         <div>
-          <div class="task-text">${t.title}</div>
+          <div class="task-text" id="text-${t.id}">${t.title}</div>
           ${t.dueDate ? `<div class="task-meta">${formatTaskTime(t.dueDate)}</div>` : ''}
         </div>
         ${i === 0 ? `<span class="priority-badge">★ today</span>` : ''}
       </li>
     `).join('');
+
+    // Click to complete
+    list.querySelectorAll('.task-item').forEach(li => {
+      li.addEventListener('click', async () => {
+        const taskId = li.dataset.id;
+        const projectId = li.dataset.project;
+        const check = document.getElementById('check-' + taskId);
+        const text = document.getElementById('text-' + taskId);
+        // Optimistic UI
+        check.style.background = 'var(--accent)';
+        check.style.borderColor = 'var(--accent)';
+        check.innerHTML = '✓';
+        check.style.color = '#fff';
+        check.style.display = 'flex';
+        check.style.alignItems = 'center';
+        check.style.justifyContent = 'center';
+        text.style.textDecoration = 'line-through';
+        text.style.opacity = '0.5';
+        try {
+          await fetch(`https://ticktick.com/open/v1/project/${projectId}/task/${taskId}/complete`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${ANA_CONFIG.ticktick.accessToken}` }
+          });
+        } catch { /* silent fail — UI already updated */ }
+        // Fade out after 1s
+        setTimeout(() => { li.style.transition = 'opacity 0.5s'; li.style.opacity = '0'; }, 1000);
+        setTimeout(() => { li.remove(); }, 1500);
+      });
+    });
   } catch {
     showTaskPlaceholder(list);
   }
