@@ -390,42 +390,116 @@ function showTaskPlaceholder(list) {
 loadTasks();
 
 /* ══════════════════════════════════════════════
-   GOOGLE CALENDAR — next event
-   Requires: ANA_CONFIG.google accessToken + calendarId
+   GOOGLE CALENDAR — today's events
+   Calendars: Personal (profgabiprando@gmail.com)
+              Calendar / Outlook import (uvart9flrktnnp77...)
+   Requires: ANA_CONFIG.google.clientId, clientSecret, refreshToken
 ══════════════════════════════════════════════ */
-async function loadNextEvent() {
-  const el = document.getElementById('next-event');
-  if (typeof ANA_CONFIG === 'undefined' || !ANA_CONFIG.google?.accessToken) {
-    el.innerHTML = `<span style="color:var(--text2);font-size:0.8rem;">🔑 Connect Google Calendar in config.js</span>`;
-    return;
-  }
+const GCAL_IDS = [
+  'profgabiprando@gmail.com',
+  'uvart9flrktnnp77fh2k1lfns8rcm7nv@import.calendar.google.com'
+];
+
+async function googleRefreshToken() {
   try {
-    const now = new Date().toISOString();
-    const end = new Date(Date.now() + 8 * 3600 * 1000).toISOString();
-    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ANA_CONFIG.google.calendarId)}/events`
-      + `?timeMin=${now}&timeMax=${end}&singleEvents=true&orderBy=startTime&maxResults=3`;
-    const r = await fetch(url, {
-      headers: { Authorization: `Bearer ${ANA_CONFIG.google.accessToken}` }
+    const cfg = ANA_CONFIG.google;
+    const r = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id:     cfg.clientId,
+        client_secret: cfg.clientSecret,
+        refresh_token: cfg.refreshToken,
+        grant_type:    'refresh_token'
+      })
     });
     const data = await r.json();
-    const events = data.items ?? [];
-    if (!events.length) {
-      el.innerHTML = `<span style="color:var(--green);font-size:0.8rem;">✓ No meetings this morning</span>`;
+    if (data.access_token) {
+      ANA_CONFIG.google.accessToken = data.access_token;
+      return true;
+    }
+  } catch { /* silent */ }
+  return false;
+}
+
+async function fetchCalendarEvents(calendarId, token) {
+  const now = new Date();
+  const todayStart = new Date(now); todayStart.setHours(0,0,0,0);
+  const todayEnd   = new Date(now); todayEnd.setHours(23,59,59,999);
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`
+    + `?timeMin=${todayStart.toISOString()}&timeMax=${todayEnd.toISOString()}`
+    + `&singleEvents=true&orderBy=startTime&maxResults=10`;
+  const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (r.status === 401) return null; // signal token expired
+  if (!r.ok) return [];
+  const data = await r.json();
+  return data.items ?? [];
+}
+
+async function loadNextEvent() {
+  const el = document.getElementById('next-event');
+  const cfg = typeof ANA_CONFIG !== 'undefined' ? ANA_CONFIG.google : null;
+  if (!cfg?.accessToken && !cfg?.refreshToken) {
+    el.innerHTML = `<span style="color:var(--text2);font-size:0.8rem;">🔑 Add Google tokens to config.js</span>`;
+    return;
+  }
+
+  // Ensure we have an access token
+  if (!cfg.accessToken && cfg.refreshToken) {
+    await googleRefreshToken();
+  }
+
+  try {
+    let allEvents = [];
+    for (const calId of GCAL_IDS) {
+      let events = await fetchCalendarEvents(calId, cfg.accessToken);
+      if (events === null) {
+        // 401 — try refresh once
+        const ok = await googleRefreshToken();
+        if (!ok) continue;
+        events = await fetchCalendarEvents(calId, cfg.accessToken) ?? [];
+      }
+      allEvents.push(...events);
+    }
+
+    // Sort by start time
+    allEvents.sort((a, b) => {
+      const ta = new Date(a.start?.dateTime ?? a.start?.date ?? 0).getTime();
+      const tb = new Date(b.start?.dateTime ?? b.start?.date ?? 0).getTime();
+      return ta - tb;
+    });
+
+    // Filter out already-finished events
+    const now = new Date();
+    const upcoming = allEvents.filter(ev => {
+      const end = new Date(ev.end?.dateTime ?? ev.end?.date ?? 0);
+      return end >= now;
+    });
+
+    if (!upcoming.length) {
+      el.innerHTML = `<span style="color:var(--green);font-size:0.8rem;">✓ No meetings today</span>`;
       return;
     }
-    el.innerHTML = events.slice(0, 2).map(ev => {
+
+    el.innerHTML = upcoming.slice(0, 3).map(ev => {
       const start = ev.start?.dateTime ?? ev.start?.date;
-      const time = start ? new Date(start).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
-      return `<div style="margin-bottom:8px;">
-        <div style="font-size:0.85rem;font-weight:500;">${ev.summary}</div>
-        <div style="font-size:0.7rem;color:var(--text3);">${time}</div>
+      const isAllDay = !ev.start?.dateTime;
+      const time = isAllDay
+        ? 'All day'
+        : new Date(start).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      const title = ev.summary || 'Event';
+      return `<div style="margin-bottom:8px;display:flex;gap:8px;align-items:flex-start;">
+        <span style="font-size:0.7rem;color:var(--accent);min-width:38px;padding-top:2px;">${time}</span>
+        <span style="font-size:0.82rem;font-weight:500;line-height:1.3;">${title}</span>
       </div>`;
     }).join('');
-  } catch {
+
+  } catch(e) {
     el.innerHTML = `<span style="color:var(--text3);font-size:0.75rem;">Calendar unavailable</span>`;
   }
 }
 loadNextEvent();
+setInterval(loadNextEvent, 5 * 60 * 1000); // refresh every 5 min
 
 /* ══════════════════════════════════════════════
    SPOTIFY — currently playing + auto token refresh
