@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ANA Companion — TV Setup</title>
+<title>ANA Companion — TV Setup v4</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <script>
 (function() {
   const KEY = 'ana_setup_auth';
@@ -155,7 +158,7 @@
 <body>
 <div class="container">
   <h1>ANA <span>Companion</span></h1>
-  <p class="subtitle">One-time TV setup — paste your tokens here, they're saved on this device only.</p>
+  <p class="subtitle">One-time TV setup — paste your tokens here, they're saved on this device only. <small style="color:var(--muted)">v4</small></p>
 
   <div class="current" id="currentStatus">
     <h3>Saved tokens on this device</h3>
@@ -311,8 +314,10 @@ function saveTokens() {
 
   const status = document.getElementById('saveStatus');
   if (saved > 0) {
+    const camIp   = localStorage.getItem('ana_tapo_ip')   || '—';
+    const camUser = localStorage.getItem('ana_tapo_user') || '—';
     status.className = 'status success';
-    status.textContent = `✓ ${saved} token(s) saved on this device. Open Wake Up Mode to test.`;
+    status.innerHTML = `✓ ${saved} item(s) saved.<br>Camera IP: <b>${camIp}</b> · User: <b>${camUser}</b>`;
   } else {
     status.className = 'status error';
     status.textContent = 'Nothing to save — paste at least one token first.';
