@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ANA — Focus Mode</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* ── Focus-mode overrides ───────────────────────── */
+    .mode-pill.focus {
+      background: rgba(96, 165, 250, 0.15);
+      color: var(--blue);
+      border: 1px solid rgba(96, 165, 250, 0.3);
+    }
+
+    /* ── Pomodoro card ──────────────────────────────── */
+    .pomodoro-card {
+      grid-area: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      position: relative;
+    }
+
+    .pomo-phase {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--blue);
+    }
+
+    .pomo-phase.break { color: var(--green); }
+    .pomo-phase.long-break { color: var(--warm); }
+
+    /* SVG ring */
+    .pomo-ring-wrap {
+      position: relative;
+      width: 220px;
+      height: 220px;
+    }
+
+    .pomo-ring-wrap svg {
+      transform: rotate(-90deg);
+    }
+
+    .pomo-ring-bg {
+      fill: none;
+      stroke: rgba(255,255,255,0.05);
+      stroke-width: 8;
+    }
+
+    .pomo-ring-progress {
+      fill: none;
+      stroke: var(--blue);
+      stroke-width: 8;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 1s linear, stroke 0.4s;
+    }
+
+    .pomo-ring-progress.break { stroke: var(--green); }
+    .pomo-ring-progress.long-break { stroke: var(--warm); }
+
+    .pomo-time-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .pomo-time {
+      font-size: 3.4rem;
+      font-weight: 200;
+      letter-spacing: -2px;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .pomo-session-label {
+      font-size: 0.65rem;
+      color: var(--text3);
+      margin-top: 4px;
+      letter-spacing: 1px;
+    }
+
+    /* Controls */
+    .pomo-controls {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .pomo-btn {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      padding: 10px 22px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s;
+      font-family: inherit;
+    }
+
+    .pomo-btn:hover { background: rgba(255,255,255,0.1); transform: translateY(-1px); }
+    .pomo-btn:active { transform: translateY(0); }
+
+    .pomo-btn.start {
+      background: rgba(96, 165, 250, 0.15);
+      border-color: rgba(96, 165, 250, 0.4);
+      color: var(--blue);
+      padding: 10px 32px;
+      font-size: 0.8rem;
+    }
+    .pomo-btn.start:hover { background: rgba(96, 165, 250, 0.25); }
+    .pomo-btn.start.running {
+      background: rgba(167, 139, 250, 0.15);
+      border-color: rgba(167, 139, 250, 0.4);
+      color: var(--accent2);
+    }
+
+    /* Session dots */
+    .pomo-dots {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .pomo-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.12);
+      transition: background 0.3s;
+    }
+
+    .pomo-dot.done { background: var(--blue); }
+    .pomo-dot.long { background: var(--warm); }
+
+    /* Duration pill selector */
+    .pomo-settings {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .dur-pill {
+      font-size: 0.6rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      padding: 4px 10px;
+      border-radius: 100px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: transparent;
+      color: var(--text3);
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+
+    .dur-pill.active, .dur-pill:hover {
+      background: rgba(96, 165, 250, 0.15);
+      border-color: rgba(96, 165, 250, 0.4);
+      color: var(--blue);
+    }
+
+    /* ── Focus layout ───────────────────────────────── */
+    .focus-layout {
+      display: grid;
+      height: 100vh;
+      padding: 32px;
+      gap: 20px;
+      grid-template-areas:
+        "header  header  header"
+        "tasks   pomo    cal   "
+        "tasks   spotify cal   ";
+      grid-template-rows: auto 1fr 1fr;
+      grid-template-columns: 300px 1fr 300px;
+    }
+
+    .focus-tasks  { grid-area: tasks;  display: flex; flex-direction: column; gap: 16px; }
+    .focus-pomo   { grid-area: pomo; }
+    .focus-spotify { grid-area: spotify; }
+    .focus-cal    { grid-area: cal;   display: flex; flex-direction: column; gap: 16px; }
+
+    /* ── Calendar (all-day events) ───────────────────── */
+    .cal-event {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 10px 12px;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-sm);
+      transition: border-color 0.2s;
+    }
+
+    .cal-event.current {
+      border-color: rgba(96, 165, 250, 0.4);
+      background: rgba(96, 165, 250, 0.06);
+    }
+
+    .cal-event.past { opacity: 0.4; }
+
+    .cal-time {
+      font-size: 0.65rem;
+      color: var(--blue);
+      min-width: 36px;
+      padding-top: 2px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .cal-title {
+      font-size: 0.8rem;
+      line-height: 1.35;
+      color: var(--text);
+    }
+
+    /* ── Spotify focus card ───────────────────────────── */
+    .focus-spotify .music-bar {
+      background: rgba(96, 165, 250, 0.06);
+      border-color: rgba(96, 165, 250, 0.15);
+    }
+
+    .focus-spotify .music-wave span { background: var(--blue); }
+
+    /* ── Deep work stat ──────────────────────────────── */
+    .work-stat-row {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .work-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .work-stat-value {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--blue);
+    }
+
+    .work-stat-label {
+      font-size: 0.6rem;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .work-stat-divider {
+      width: 1px;
+      background: rgba(255,255,255,0.08);
+      align-self: stretch;
+      margin: 4px 0;
+    }
+  </style>
+</head>
+<body>
+
+<div class="focus-layout">
+
+  <!-- ── HEADER ── -->
+  <header class="header">
+    <div class="header-left">
+      <div class="greeting">
+        Bom trabalho, <span class="name">Gabi</span> 🧠
+        <span class="mode-pill focus"><span class="dot"></span>Focus</span>
+      </div>
+      <div class="date-line" id="date-line">Loading…</div>
+    </div>
+    <div class="header-right">
+      <div class="clock" id="clock">08:30</div>
+      <div class="clock-sub">Stockholm</div>
+    </div>
+  </header>
+
+  <!-- ── LEFT: TASKS ── -->
+  <section class="focus-tasks">
+    <div class="card" style="flex:1;">
+      <div class="card-title">Today's tasks</div>
+      <ul class="task-list" id="task-list">
+        <li class="loading">Loading tasks…</li>
+      </ul>
+    </div>
+
+    <!-- Work stats -->
+    <div class="card">
+      <div class="card-title">Deep work today</div>
+      <div class="work-stat-row">
+        <div class="work-stat">
+          <div class="work-stat-value" id="stat-pomos">0</div>
+          <div class="work-stat-label">Pomodoros</div>
+        </div>
+        <div class="work-stat-divider"></div>
+        <div class="work-stat">
+          <div class="work-stat-value" id="stat-minutes">0 min</div>
+          <div class="work-stat-label">Focus time</div>
+        </div>
+        <div class="work-stat-divider"></div>
+        <div class="work-stat">
+          <div class="work-stat-value" id="stat-until">17:00</div>
+          <div class="work-stat-label">Work ends</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CENTER: POMODORO ── -->
+  <main class="card pomodoro-card focus-pomo">
+    <div class="card-title" id="pomo-phase-label">Focus block</div>
+
+    <!-- Phase indicator -->
+    <div class="pomo-phase" id="pomo-phase">Work</div>
+
+    <!-- Ring timer -->
+    <div class="pomo-ring-wrap">
+      <svg width="220" height="220" viewBox="0 0 220 220">
+        <circle class="pomo-ring-bg" cx="110" cy="110" r="98"/>
+        <circle class="pomo-ring-progress" id="ring" cx="110" cy="110" r="98"
+          stroke-dasharray="615.75"
+          stroke-dashoffset="0"/>
+      </svg>
+      <div class="pomo-time-overlay">
+        <div class="pomo-time" id="pomo-time">25:00</div>
+        <div class="pomo-session-label" id="pomo-session">Session 1 of 4</div>
+      </div>
+    </div>
+
+    <!-- Session dots -->
+    <div class="pomo-dots" id="pomo-dots">
+      <div class="pomo-dot" id="dot-0"></div>
+      <div class="pomo-dot" id="dot-1"></div>
+      <div class="pomo-dot" id="dot-2"></div>
+      <div class="pomo-dot" id="dot-3"></div>
+    </div>
+
+    <!-- Controls -->
+    <div class="pomo-controls">
+      <button class="pomo-btn" onclick="pomoCycle(-1)" title="Previous phase">◀</button>
+      <button class="pomo-btn start" id="pomo-start-btn" onclick="pomoToggle()">▶ Start</button>
+      <button class="pomo-btn" onclick="pomoReset()">↺ Reset</button>
+    </div>
+
+    <!-- Duration presets -->
+    <div class="pomo-settings">
+      <button class="dur-pill active" onclick="setDur(25,'work')" id="dur-25">25 min</button>
+      <button class="dur-pill" onclick="setDur(50,'work')" id="dur-50">50 min</button>
+      <span style="font-size:0.6rem;color:var(--text3);margin:0 4px;">·</span>
+      <button class="dur-pill" onclick="setDur(5,'break')" id="dur-5">5 min break</button>
+      <button class="dur-pill" onclick="setDur(15,'long-break')" id="dur-15">15 min break</button>
+    </div>
+  </main>
+
+  <!-- ── BOTTOM CENTER: SPOTIFY ── -->
+  <div class="card focus-spotify">
+    <div class="card-title">Now playing</div>
+    <div class="music-bar">
+      <span class="music-icon">🎵</span>
+      <div class="music-info">
+        <div class="music-title" id="track-title">Connecting to Spotify…</div>
+        <div class="music-artist" id="track-artist">Focus playlist</div>
+      </div>
+      <div class="music-wave" id="music-wave" style="display:none;">
+        <span></span><span></span><span></span><span></span><span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RIGHT: CALENDAR ── -->
+  <section class="focus-cal">
+    <div class="card" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
+      <div class="card-title">Today's schedule</div>
+      <div id="cal-events" style="display:flex;flex-direction:column;gap:8px;overflow:hidden;flex:1;">
+        <div class="loading">Loading calendar…</div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div class="ana-sig">ANA Companion · Focus</div>
+
+<script src="config.js"></script>
+<script>
+
+/* ══════════════════════════════════════════════
+   CLOCK + DATE
+══════════════════════════════════════════════ */
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+  document.getElementById('date-line').textContent =
+    now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  document.getElementById('stat-until').textContent = '17:00';
+}
+updateClock();
+setInterval(updateClock, 10000);
+
+/* ══════════════════════════════════════════════
+   POMODORO TIMER
+══════════════════════════════════════════════ */
+const CIRCUMFERENCE = 2 * Math.PI * 98; // ≈ 615.75
+const ring = document.getElementById('ring');
+ring.style.strokeDasharray = CIRCUMFERENCE;
+
+let pomoDurationMin = 25;
+let pomoPhaseType   = 'work';    // 'work' | 'break' | 'long-break'
+let pomoSecondsLeft = 25 * 60;
+let pomoTotalSecs   = 25 * 60;
+let pomoRunning     = false;
+let pomoInterval    = null;
+let pomoSession     = 0;        // 0-indexed completed work sessions
+let pomoDonePomos   = 0;
+let pomoFocusMin    = 0;
+
+const PHASES = [
+  { type: 'work',       label: 'Work',        min: 25, ring: 'default' },
+  { type: 'break',      label: 'Short Break', min: 5,  ring: 'break' },
+];
+
+function setDur(min, type) {
+  if (pomoRunning) return; // don't change mid-run
+  pomoDurationMin = min;
+  pomoPhaseType   = type;
+  pomoSecondsLeft = min * 60;
+  pomoTotalSecs   = min * 60;
+  renderPomo();
+  // Active pill
+  document.querySelectorAll('.dur-pill').forEach(p => p.classList.remove('active'));
+  document.getElementById('dur-' + min)?.classList.add('active');
+}
+
+function renderPomo() {
+  const m = Math.floor(pomoSecondsLeft / 60);
+  const s = pomoSecondsLeft % 60;
+  document.getElementById('pomo-time').textContent =
+    String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+
+  // Ring
+  const fraction = pomoSecondsLeft / pomoTotalSecs;
+  ring.style.strokeDashoffset = CIRCUMFERENCE * (1 - fraction);
+
+  // Ring + phase colour
+  ring.className = 'pomo-ring-progress' + (pomoPhaseType === 'break' ? ' break' : pomoPhaseType === 'long-break' ? ' long-break' : '');
+  const phaseEl = document.getElementById('pomo-phase');
+  phaseEl.className = 'pomo-phase' + (pomoPhaseType === 'break' ? ' break' : pomoPhaseType === 'long-break' ? ' long-break' : '');
+  phaseEl.textContent = pomoPhaseType === 'work' ? 'Work' : pomoPhaseType === 'break' ? 'Short Break' : 'Long Break';
+
+  // Session label
+  const sessionNum = (pomoPhaseType === 'work' ? pomoSession : pomoSession) + 1;
+  document.getElementById('pomo-session').textContent = `Session ${sessionNum} of 4`;
+
+  // Dots
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById('dot-' + i);
+    if (i < pomoDonePomos % 4) {
+      dot.className = 'pomo-dot done';
+    } else {
+      dot.className = 'pomo-dot';
+    }
+  }
+
+  // Stats
+  document.getElementById('stat-pomos').textContent = pomoDonePomos;
+  document.getElementById('stat-minutes').textContent = pomoFocusMin + ' min';
+}
+
+function pomoToggle() {
+  if (pomoRunning) {
+    clearInterval(pomoInterval);
+    pomoRunning = false;
+    document.getElementById('pomo-start-btn').textContent = '▶ Resume';
+    document.getElementById('pomo-start-btn').classList.remove('running');
+  } else {
+    pomoRunning = true;
+    document.getElementById('pomo-start-btn').textContent = '⏸ Pause';
+    document.getElementById('pomo-start-btn').classList.add('running');
+    pomoInterval = setInterval(() => {
+      pomoSecondsLeft--;
+      if (pomoPhaseType === 'work') pomoFocusMin = Math.round((pomoTotalSecs - pomoSecondsLeft) / 60 + pomoDonePomos * pomoDurationMin);
+      renderPomo();
+      if (pomoSecondsLeft <= 0) {
+        clearInterval(pomoInterval);
+        pomoRunning = false;
+        pomoPhaseFinished();
+      }
+    }, 1000);
+  }
+  renderPomo();
+}
+
+function pomoPhaseFinished() {
+  if (pomoPhaseType === 'work') {
+    pomoDonePomos++;
+    pomoFocusMin = pomoDonePomos * pomoDurationMin;
+    // After 4 work sessions → long break; else short break
+    const nextIsLong = pomoDonePomos % 4 === 0;
+    pomoPhaseType   = nextIsLong ? 'long-break' : 'break';
+    const breakMin  = nextIsLong ? 15 : 5;
+    pomoSecondsLeft = breakMin * 60;
+    pomoTotalSecs   = breakMin * 60;
+    notify('Break time! 🎉', nextIsLong ? '15 min long break — well deserved.' : '5 min short break.');
+  } else {
+    // Break finished → back to work
+    pomoPhaseType   = 'work';
+    pomoSecondsLeft = pomoDurationMin * 60;
+    pomoTotalSecs   = pomoDurationMin * 60;
+    notify('Back to focus! 🧠', 'Your ' + pomoDurationMin + '-min block starts now.');
+    pomoSession++;
+  }
+  document.getElementById('pomo-start-btn').textContent = '▶ Start';
+  document.getElementById('pomo-start-btn').classList.remove('running');
+  renderPomo();
+}
+
+function pomoReset() {
+  clearInterval(pomoInterval);
+  pomoRunning     = false;
+  pomoSecondsLeft = pomoDurationMin * 60;
+  pomoTotalSecs   = pomoDurationMin * 60;
+  document.getElementById('pomo-start-btn').textContent = '▶ Start';
+  document.getElementById('pomo-start-btn').classList.remove('running');
+  renderPomo();
+}
+
+function pomoCycle(dir) {
+  if (pomoRunning) return;
+  // Cycle through presets: 25 work → 5 break → 15 long-break
+  const presets = [
+    { min: 25, type: 'work' },
+    { min: 50, type: 'work' },
+    { min: 5,  type: 'break' },
+    { min: 15, type: 'long-break' },
+  ];
+  const curIdx = presets.findIndex(p => p.min === pomoDurationMin && p.type === pomoPhaseType);
+  const next = presets[(curIdx + 4 + dir) % presets.length];
+  setDur(next.min, next.type);
+}
+
+function notify(title, body) {
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification(title, { body, icon: '' });
+  }
+}
+
+// Request notification permission silently
+if ('Notification' in window && Notification.permission === 'default') {
+  Notification.requestPermission();
+}
+
+renderPomo();
+
+/* ══════════════════════════════════════════════
+   TASKS — TickTick
+══════════════════════════════════════════════ */
+async function loadTasks() {
+  const list = document.getElementById('task-list');
+  if (typeof ANA_CONFIG === 'undefined' || !ANA_CONFIG.ticktick?.accessToken) {
+    showTaskPlaceholder(list); return;
+  }
+  try {
+    const projR = await fetch('https://ticktick.com/open/v1/project', {
+      headers: { Authorization: `Bearer ${ANA_CONFIG.ticktick.accessToken}` }
+    });
+    if (!projR.ok) throw new Error('API error');
+    const projects = await projR.json();
+    const allTasks = [];
+    for (const proj of projects.slice(0, 10)) {
+      try {
+        const tr = await fetch(`https://ticktick.com/open/v1/project/${proj.id}/data`, {
+          headers: { Authorization: `Bearer ${ANA_CONFIG.ticktick.accessToken}` }
+        });
+        if (!tr.ok) continue;
+        const pd = await tr.json();
+        (pd.tasks || []).forEach(t => allTasks.push({...t, projectName: proj.name}));
+      } catch { continue; }
+    }
+    const tasks = allTasks.filter(t => t.status === 0 || t.status == null);
+    if (!tasks.length) {
+      list.innerHTML = `<li class="task-item"><div class="task-text">No tasks — enjoy the day 🎉</div></li>`;
+      return;
+    }
+    tasks.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
+    const topTasks = tasks.slice(0, 8);
+    list.innerHTML = topTasks.map((t, i) => `
+      <li class="task-item ${i === 0 ? 'priority' : ''}" data-id="${t.id}" data-project="${t.projectId}" style="cursor:pointer">
+        <div class="task-check" id="check-${t.id}"></div>
+        <div>
+          <div class="task-text" id="text-${t.id}">${t.title}</div>
+          ${t.projectName ? `<div class="task-meta">${t.projectName}</div>` : ''}
+        </div>
+        ${i === 0 ? `<span class="priority-badge">★ main</span>` : ''}
+      </li>
+    `).join('');
+
+    list.querySelectorAll('.task-item').forEach(li => {
+      li.addEventListener('click', async () => {
+        const taskId = li.dataset.id;
+        const projectId = li.dataset.project;
+        const check = document.getElementById('check-' + taskId);
+        const text  = document.getElementById('text-' + taskId);
+        check.style.cssText = 'background:var(--blue);border-color:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;';
+        check.innerHTML = '✓';
+        text.style.textDecoration = 'line-through';
+        text.style.opacity = '0.4';
+        try {
+          await fetch(`https://ticktick.com/open/v1/project/${projectId}/task/${taskId}/complete`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${ANA_CONFIG.ticktick.accessToken}` }
+          });
+        } catch { /* silent */ }
+        setTimeout(() => { li.style.transition = 'opacity 0.5s'; li.style.opacity = '0'; }, 900);
+        setTimeout(() => { li.remove(); }, 1400);
+      });
+    });
+  } catch { showTaskPlaceholder(list); }
+}
+
+function showTaskPlaceholder(list) {
+  list.innerHTML = `
+    <li class="task-item priority">
+      <div class="task-check"></div>
+      <div class="task-text">Deep work block — paper draft</div>
+      <span class="priority-badge">★ main</span>
+    </li>
+    <li class="task-item"><div class="task-check"></div><div class="task-text">Reply to emails</div></li>
+    <li class="task-item"><div class="task-check"></div><div class="task-text">SFI homework</div></li>
+    <li class="task-item"><div class="task-check"></div><div class="task-text">Review data analysis</div></li>
+  `;
+}
+loadTasks();
+
+/* ══════════════════════════════════════════════
+   GOOGLE CALENDAR — full day view
+══════════════════════════════════════════════ */
+const GCAL_IDS = [
+  'profgabiprando@gmail.com',
+  'uvart9flrktnnp77fh2k1lfns8rcm7nv@import.calendar.google.com'
+];
+
+async function googleRefreshToken() {
+  try {
+    const cfg = ANA_CONFIG.google;
+    const r = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: cfg.clientId, client_secret: cfg.clientSecret,
+        refresh_token: cfg.refreshToken, grant_type: 'refresh_token'
+      })
+    });
+    const d = await r.json();
+    if (d.access_token) { ANA_CONFIG.google.accessToken = d.access_token; return true; }
+  } catch { }
+  return false;
+}
+
+async function fetchCalendarEvents(calendarId, token) {
+  const now = new Date();
+  const start = new Date(now); start.setHours(0,0,0,0);
+  const end   = new Date(now); end.setHours(23,59,59,999);
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`
+    + `?timeMin=${start.toISOString()}&timeMax=${end.toISOString()}`
+    + `&singleEvents=true&orderBy=startTime&maxResults=15`;
+  const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (r.status === 401) return null;
+  if (!r.ok) return [];
+  return (await r.json()).items ?? [];
+}
+
+async function loadCalendar() {
+  const el = document.getElementById('cal-events');
+  const cfg = typeof ANA_CONFIG !== 'undefined' ? ANA_CONFIG.google : null;
+  if (!cfg?.accessToken && !cfg?.refreshToken) {
+    el.innerHTML = `<div style="color:var(--text3);font-size:0.75rem;">🔑 Add Google tokens to config.js</div>`;
+    return;
+  }
+  if (!cfg.accessToken) await googleRefreshToken();
+  try {
+    let allEvents = [];
+    for (const calId of GCAL_IDS) {
+      let events = await fetchCalendarEvents(calId, cfg.accessToken);
+      if (events === null) {
+        const ok = await googleRefreshToken();
+        if (!ok) continue;
+        events = await fetchCalendarEvents(calId, cfg.accessToken) ?? [];
+      }
+      allEvents.push(...events);
+    }
+    // Sort by start
+    allEvents.sort((a, b) =>
+      new Date(a.start?.dateTime ?? a.start?.date ?? 0) -
+      new Date(b.start?.dateTime ?? b.start?.date ?? 0)
+    );
+
+    if (!allEvents.length) {
+      el.innerHTML = `<div style="color:var(--green);font-size:0.8rem;">✓ No meetings today — full focus mode!</div>`;
+      return;
+    }
+
+    const now = new Date();
+    el.innerHTML = allEvents.slice(0, 8).map(ev => {
+      const isAllDay = !ev.start?.dateTime;
+      const start = new Date(ev.start?.dateTime ?? ev.start?.date);
+      const end   = new Date(ev.end?.dateTime   ?? ev.end?.date);
+      const time  = isAllDay ? 'All day' : start.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      const isCurrent = !isAllDay && start <= now && end >= now;
+      const isPast    = !isAllDay && end < now;
+      return `<div class="cal-event${isCurrent ? ' current' : isPast ? ' past' : ''}">
+        <div class="cal-time">${time}</div>
+        <div class="cal-title">${ev.summary || 'Event'}</div>
+      </div>`;
+    }).join('');
+  } catch {
+    el.innerHTML = `<div style="color:var(--text3);font-size:0.75rem;">Calendar unavailable</div>`;
+  }
+}
+loadCalendar();
+setInterval(loadCalendar, 5 * 60 * 1000);
+
+/* ══════════════════════════════════════════════
+   SPOTIFY
+══════════════════════════════════════════════ */
+async function spotifyRefreshToken() {
+  try {
+    const cfg = ANA_CONFIG.spotify;
+    const r = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': 'Basic ' + btoa(cfg.clientId + ':' + cfg.clientSecret)
+      },
+      body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: cfg.refreshToken })
+    });
+    const d = await r.json();
+    if (d.access_token) { ANA_CONFIG.spotify.accessToken = d.access_token; return true; }
+  } catch { }
+  return false;
+}
+
+async function loadSpotify() {
+  if (typeof ANA_CONFIG === 'undefined' || !ANA_CONFIG.spotify?.accessToken) return;
+  try {
+    let r = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
+      headers: { Authorization: `Bearer ${ANA_CONFIG.spotify.accessToken}` }
+    });
+    if (r.status === 401) {
+      const ok = await spotifyRefreshToken();
+      if (!ok) return;
+      r = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
+        headers: { Authorization: `Bearer ${ANA_CONFIG.spotify.accessToken}` }
+      });
+    }
+    if (r.status === 204) {
+      document.getElementById('track-title').textContent  = 'Nothing playing';
+      document.getElementById('track-artist').textContent = '';
+      document.getElementById('music-wave').style.display = 'none';
+      return;
+    }
+    const data = await r.json();
+    if (data.item) {
+      document.getElementById('track-title').textContent  = data.item.name;
+      document.getElementById('track-artist').textContent = data.item.artists.map(a => a.name).join(', ');
+      document.getElementById('music-wave').style.display = 'flex';
+    }
+  } catch { /* silent */ }
+}
+loadSpotify();
+setInterval(loadSpotify, 30000);
+
+</script>
+</body>
+</html>
