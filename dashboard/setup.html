@@ -194,6 +194,10 @@
       <label>Refresh Token</label>
       <input type="text" id="spotifyRefreshToken" placeholder="AQADS3...">
     </div>
+    <div class="field">
+      <label>Access Token <small style="color:var(--muted)">(optional — auto-refreshed)</small></label>
+      <input type="text" id="spotifyAccessToken" placeholder="BQA...">
+    </div>
   </div>
 
   <div class="card">
@@ -226,6 +230,7 @@ const KEYS = {
   spotifyClientId:    'ana_spotify_clientId',
   spotifyClientSecret:'ana_spotify_clientSecret',
   spotifyRefreshToken:'ana_spotify_refreshToken',
+  spotifyAccessToken: 'ana_spotify_accessToken',
   ticktickToken:      'ana_ticktick_token',
 };
 
@@ -264,6 +269,7 @@ function saveTokens() {
     spotifyClientId:    document.getElementById('spotifyClientId').value.trim(),
     spotifyClientSecret:document.getElementById('spotifyClientSecret').value.trim(),
     spotifyRefreshToken:document.getElementById('spotifyRefreshToken').value.trim(),
+    spotifyAccessToken: document.getElementById('spotifyAccessToken').value.trim(),
     ticktickToken:      document.getElementById('ticktickToken').value.trim(),
   };
 
